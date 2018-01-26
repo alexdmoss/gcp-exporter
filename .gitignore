@@ -1,5 +1,7 @@
+.gopath/
 .idea/
-service-account.json
 
+codeclimate.json
 gcp-exporter
+service-account.json
 vendor/
