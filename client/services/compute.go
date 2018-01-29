@@ -16,7 +16,7 @@ type ComputeService struct {
 }
 
 func (cs *ComputeService) ListInstances(project string, zone string) (*compute.InstanceList, error) {
-	if cs.service != nil {
+	if cs.service == nil {
 		return nil, fmt.Errorf("service not initialized")
 	}
 

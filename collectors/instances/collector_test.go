@@ -112,6 +112,8 @@ func TestCollector_GetData(t *testing.T) {
 		return ct
 	}
 
+	collector.initialized = true
+
 	err := collector.GetData()
 
 	require.NoError(t, err)
@@ -178,6 +180,8 @@ func TestCollector_GetData_TagFiltered(t *testing.T) {
 				return ct
 			}
 
+			collector.initialized = true
+
 			err := collector.GetData()
 
 			require.NoError(t, err)
@@ -195,6 +199,8 @@ func TestCollector_GetData_ListInstancesError(t *testing.T) {
 	service := &services.MockComputeServiceInterface{}
 	service.On("ListInstances", "fake-project-1", "fake-zone-1").Return(nil, fmt.Errorf("fake-list-instances-error")).Once()
 	collector.service = service
+
+	collector.initialized = true
 
 	err := collector.GetData()
 

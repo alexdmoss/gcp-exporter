@@ -91,6 +91,9 @@ type Collector struct {
 
 	service   services.ComputeServiceInterface
 	instances counterInterface
+
+	initialized    bool
+	initalizedLock sync.RWMutex
 }
 
 func (ic *Collector) GetName() string {
@@ -98,8 +101,12 @@ func (ic *Collector) GetName() string {
 }
 
 func (ic *Collector) GetData() error {
+	if !ic.isInitialized() {
+		return fmt.Errorf("instances collector not initialized")
+	}
+
 	if ic.service == nil {
-		return fmt.Errorf("collector not initialized")
+		return fmt.Errorf("instances collector compute.Service is not initialized")
 	}
 
 	count := newCounter()
@@ -126,6 +133,13 @@ func (ic *Collector) GetData() error {
 	ic.instances = count
 
 	return nil
+}
+
+func (ic *Collector) isInitialized() bool {
+	ic.initalizedLock.RLock()
+	defer ic.initalizedLock.RUnlock()
+
+	return ic.initialized
 }
 
 func (ic *Collector) filterInstances(instances []*compute.Instance) []*compute.Instance {
@@ -180,9 +194,17 @@ func (ic *Collector) Init(client *http.Client) error {
 		"matchTags": strings.Join(ic.MatchTags, ","),
 	}).Info("Registered collector")
 
+	ic.initalizedLock.Lock()
+	defer ic.initalizedLock.Unlock()
+
+	ic.initialized = true
+
 	return nil
 }
 
 func NewCollector() *Collector {
-	return &Collector{}
+	return &Collector{
+		instances:   newCounter(),
+		initialized: false,
+	}
 }
