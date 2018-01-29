@@ -93,6 +93,7 @@ func main() {
 
 	app.Commands = []cli.Command{
 		commands.NewStartCommand(),
+		commands.NewGetTokenCommand(),
 	}
 
 	if err := app.Run(os.Args); err != nil {

@@ -34,16 +34,16 @@ gcp-exporter [global-options] command [command-options] [arguments]
 
 #### Commands
 
-##### `help`
+##### `help` command
 
 Shows general help (similar to `--help` flag). It can be used also together with command
 name. In that case it will show usage information about the selected command.
 
-##### `start`
+##### `start` command
 
 Starts the exporter.
 
-**`start` command options**
+_command options_
 
 | Name                           | Type    | Required? | Description |
 |--------------------------------|---------|-----------|-------------|
@@ -71,6 +71,24 @@ $ /opt/prometheus/gcp-exporter/gcp-exporter start \
     --zone us-east1-c \
     --zone us-east1-d \
     --match-tag docker-machine
+```
+
+##### `get-token` command
+
+Allows to get the oAuth2 Token, using specified Service Account JSON file. The token
+may be next used to do a manual API calls (e.g. with `curl`).
+
+_command options_
+
+| Name                           | Type    | Required? | Description |
+|--------------------------------|---------|-----------|-------------|
+| `--service-account-file`       | string  | no        | Path to GCP Service Account JSON file (default: `~/.google-service-account.json`) |
+
+**Example usage**
+
+```bash
+$ /opt/prometheus/gcp-exporter/gcp-exporter get-token \
+    --service-account-file /opt/prometheus/gcp-exporter/service-account-file.json
 ```
 
 ## Using Docker container
