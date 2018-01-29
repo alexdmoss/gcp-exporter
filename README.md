@@ -1,5 +1,8 @@
 # Google Cloud Platform - Prometheus exporter
 
+[![pipeline status](https://gitlab.com/gitlab-org/ci-cd/gcp-exporter/badges/master/pipeline.svg)](https://gitlab.com/gitlab-org/ci-cd/gcp-exporter/commits/master)
+[![coverage report](https://gitlab.com/gitlab-org/ci-cd/gcp-exporter/badges/master/coverage.svg)](https://gitlab.com/gitlab-org/ci-cd/gcp-exporter/commits/master)
+
 `gcp-exporter` is a Prometheus exporter for Google Cloud Platform resources.
 
 This tool looks for defined GCP resources and exports metrics about them
