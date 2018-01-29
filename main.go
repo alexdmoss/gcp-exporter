@@ -7,6 +7,7 @@ import (
 	"github.com/Sirupsen/logrus"
 	"github.com/urfave/cli"
 
+	"gitlab.com/gitlab-org/ci-cd/gcp-exporter/commands"
 	"gitlab.com/gitlab-org/ci-cd/gcp-exporter/version"
 )
 
@@ -89,6 +90,10 @@ func main() {
 
 	setupLogging(app)
 	logStartup(app)
+
+	app.Commands = []cli.Command{
+		commands.NewStartCommand(),
+	}
 
 	if err := app.Run(os.Args); err != nil {
 		logrus.Fatal(err)
