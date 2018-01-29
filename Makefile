@@ -7,7 +7,7 @@ export CGO_ENABLED ?= 0
 export CI_REGISTRY_IMAGE ?= registry.gitlab.com/gitlab-org/ci-cd/gcp-exporter
 export CI_IMAGE ?= $(CI_REGISTRY_IMAGE)/ci:1.9-0
 
-TESTFLAGS ?= -cover
+export TESTFLAGS ?= -cover
 
 PKG = gitlab.com/gitlab-org/ci-cd/gcp-exporter
 VERSION_PKG = $(PKG)/version
@@ -25,7 +25,7 @@ export PATH := $(GOPATH_BIN):$(PATH)
 
 # Packages in vendor/ are included in ./...
 # https://github.com/golang/go/issues/11659
-OUR_PACKAGES ?= $(subst _$(BUILD_DIR),$(PKG),$(shell go list ./... | grep -v '/vendor/'))
+export OUR_PACKAGES ?= $(subst _$(BUILD_DIR),$(PKG),$(shell go list ./... | grep -v -e '/vendor/' -e './cover/'))
 
 GO_FILES ?= $(shell find . -name '*.go' | grep -v './.gopath/')
 
@@ -37,6 +37,9 @@ GO_LDFLAGS := -X $(VERSION_PKG).VERSION=$(VERSION) \
 
 # Development Tools
 DEP = $(GOPATH_BIN)/dep
+MOCKERY = $(GOPATH_BIN)/mockery
+
+MOCKERY_FLAGS = -note="This comment works around https://github.com/vektra/mockery/issues/155"
 
 .PHONY: version
 version:
@@ -79,8 +82,13 @@ fmt: $(GOPATH_SETUP)
 
 .PHONY: test
 test: deps
-	# Running unit tests (with: $(TESTFLAGS))
-	@go test $(OUR_PACKAGES) $(TESTFLAGS)
+	# Running unit tests (with: CGO=$(CGO_ENABLED) flags=$(TESTFLAGS))
+	@./scripts/go_test_with_coverage_report
+
+.PHONY: race_test
+race_test: CGO_ENABLED=1
+race_test: TESTFLAGS=-cover -race
+race_test: test
 
 .PHONY: check_race_conditions
 check_race_conditions:
@@ -104,6 +112,15 @@ release_ci_image:
 	# Release CI Docker image
 	@./scripts/release_ci_image
 
+# We rely on user GOPATH 'cause mockery seems not to be able to find dependencies in vendor directory
+.PHONY: mocks
+mocks: $(MOCKERY)
+	@find . -type f -name 'mock_*' -delete
+	@GOPATH=$(ORIGINAL_GOPATH) mockery $(MOCKERY_FLAGS) -dir=./client -all -inpkg
+	@GOPATH=$(ORIGINAL_GOPATH) mockery $(MOCKERY_FLAGS) -dir=./collectors -all -inpkg
+	@GOPATH=$(ORIGINAL_GOPATH) mockery $(MOCKERY_FLAGS) -dir=./services -all -inpkg
+	@GOPATH=$(ORIGINAL_GOPATH) mockery $(MOCKERY_FLAGS) -dir=./tests -all -inpkg
+
 #
 # local GOPATH setup
 #
@@ -126,6 +143,10 @@ $(PKG_BUILD_DIR):
 $(DEP): $(GOPATH_SETUP)
     # installing github.com/golang/dep/cmd/dep ($(DEP))
 	@CGO_ENABLED=1 go get github.com/golang/dep/cmd/dep
+
+$(MOCKERY): $(GOPATH_SETUP)
+	# installing github.com/vektra/mockery/.../ ($(MOCKERY))
+	@CGO_ENABLED=1 go get github.com/vektra/mockery/.../
 
 .PHONY: clean
 clean:

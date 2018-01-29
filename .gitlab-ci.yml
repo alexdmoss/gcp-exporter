@@ -53,19 +53,26 @@ codequality:
   cache: {}
   dependencies: []
 
-unit tests (no race):
+.unit_tests: &unit_tests
   stage: test
-  script:
-    - make test
+  artifacts:
+    paths:
+    - coverprofile.html
+    - coverprofile.txt
+    - coverprofile.func.txt
+    expire_in: 1 week
   tags:
   - docker
 
-unit tests:
-  stage: test
+unit tests (no race):
+  <<: *unit_tests
   script:
-  - CGO_ENABLED=1 TESTFLAGS="-cover -race" make test
-  tags:
-  - docker
+    - make test
+
+unit tests:
+  <<: *unit_tests
+  script:
+  - make race_test
 
 race conditions detector:
   <<: *docker
