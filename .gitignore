@@ -1,7 +1,12 @@
+.cover/
 .gopath/
 .idea/
 
 codeclimate.json
+coverprofile.html
+coverprofile.txt
+coverprofile.func.txt
+
 gcp-exporter
 service-account.json
 vendor/

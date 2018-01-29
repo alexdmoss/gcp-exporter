@@ -7,4 +7,4 @@ RUN apk add -U ca-certificates
 
 COPY ./gcp-exporter /usr/local/bin/
 
-ENTRYPOINT ["/usr/local/bin/gcp-exporter", "service"]
+ENTRYPOINT ["/usr/local/bin/gcp-exporter", "start"]

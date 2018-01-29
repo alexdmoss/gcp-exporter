@@ -41,6 +41,18 @@
   name = "github.com/urfave/cli"
   version = "1.20.0"
 
+[[constraint]]
+  branch = "master"
+  name = "gitlab.com/ayufan/golang-cli-helpers"
+
+[[constraint]]
+  branch = "master"
+  name = "golang.org/x/oauth2"
+
+[[constraint]]
+  branch = "master"
+  name = "google.golang.org/api"
+
 [prune]
   go-tests = true
   unused-packages = true
