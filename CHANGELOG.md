@@ -1,6 +1,6 @@
 # GCP Exporter changelog
 
-## unreleased
+## v0.1.1 (2018-01-29)
 
 - Fix two bugs in instances collector
 
