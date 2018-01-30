@@ -10,7 +10,7 @@ import (
 	"github.com/urfave/cli"
 
 	col "gitlab.com/gitlab-org/ci-cd/gcp-exporter/collectors/collector"
-	"gitlab.com/gitlab-org/ci-cd/gcp-exporter/collectors/instances"
+	"gitlab.com/gitlab-org/ci-cd/gcp-exporter/collectors/compute"
 )
 
 const (
@@ -120,5 +120,14 @@ func NewProvider(client *http.Client) *Provider {
 }
 
 func init() {
-	Collectors.Add(instances.NewCollector())
+	computeCommon := &compute.Common{}
+	Collectors.AddFlagsFrom(computeCommon)
+
+	collectors := []col.Interface{
+		compute.NewInstancesCollector(computeCommon),
+	}
+
+	for _, collector := range collectors {
+		Collectors.Add(collector)
+	}
 }
