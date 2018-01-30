@@ -1,4 +1,4 @@
-package instances
+package compute
 
 import (
 	"fmt"
@@ -15,17 +15,17 @@ import (
 	"gitlab.com/gitlab-org/ci-cd/gcp-exporter/client/services"
 )
 
-func TestCount_Add(t *testing.T) {
+func TestInstancesCounter_Add(t *testing.T) {
 	instance1 := &compute.Instance{}
 	instance2 := &compute.Instance{}
 
-	c := newCounter().(*counter)
+	c := newInstancesCounter().(*instancesCounter)
 	c.Add("project", "zone", []*compute.Instance{instance1})
 	c.Add("project", "zone", []*compute.Instance{instance2})
 
 	assert.Len(t, c.count, 1)
 
-	p := permutation{
+	p := instancesPermutation{
 		Project: "project",
 		Zone:    "zone",
 		Tags:    "",
@@ -33,12 +33,12 @@ func TestCount_Add(t *testing.T) {
 	assert.Equal(t, 2, c.count[p])
 }
 
-func TestCount_Collect(t *testing.T) {
+func TestInstancesCounter_Collect(t *testing.T) {
 	ch := make(chan prometheus.Metric, 50)
 	defer close(ch)
 
-	c := newCounter().(*counter)
-	p := permutation{
+	c := newInstancesCounter().(*instancesCounter)
+	p := instancesPermutation{
 		Project: "project",
 		Zone:    "zone",
 		Tags:    "",
@@ -50,25 +50,25 @@ func TestCount_Collect(t *testing.T) {
 	assert.Len(t, ch, 1)
 }
 
-func TestCollector_Init(t *testing.T) {
-	collector := NewCollector()
+func TestInstancesCollector_Init(t *testing.T) {
+	collector := NewInstancesCollector(&Common{})
 	err := collector.Init(http.DefaultClient)
 
 	assert.NoError(t, err)
 }
 
-func TestCollector_Init_noClient(t *testing.T) {
-	collector := NewCollector()
+func TestInstancesCollector_Init_noClient(t *testing.T) {
+	collector := NewInstancesCollector(&Common{})
 	err := collector.Init(nil)
 
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "error while initializing computeService:")
 }
 
-func TestCollector_GetData_withoutInitialize(t *testing.T) {
-	collector := NewCollector()
+func TestInstancesCollector_GetData_withoutInitialize(t *testing.T) {
+	collector := NewInstancesCollector(&Common{})
 	collector.Projects = append(collector.Projects, "fake-project")
-	collector.Zones = append(collector.Zones, "fake-project")
+	collector.Zones = append(collector.Zones, "fake-zone")
 
 	err := collector.GetData()
 
@@ -76,13 +76,25 @@ func TestCollector_GetData_withoutInitialize(t *testing.T) {
 	assert.Contains(t, err.Error(), "collector not initialized")
 }
 
-func TestCollector_GetData(t *testing.T) {
+func TestInstancesCollector_GetData_withoutComputeService(t *testing.T) {
+	collector := NewInstancesCollector(&Common{})
+	collector.Projects = append(collector.Projects, "fake-project")
+	collector.Zones = append(collector.Zones, "fake-zone")
+	collector.initialized = true
+
+	err := collector.GetData()
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "instances collector compute.Service is not initialized")
+}
+
+func TestInstancesCollector_GetData(t *testing.T) {
 	p1 := "fake-project-1"
 	p2 := "fake-project-2"
 	z1 := "fake-zone-1"
 	z2 := "fake-zone-2"
 
-	collector := NewCollector()
+	collector := NewInstancesCollector(&Common{})
 	collector.Projects = append(collector.Projects, []string{p1, p2}...)
 	collector.Zones = append(collector.Zones, []string{z1, z2}...)
 
@@ -102,13 +114,13 @@ func TestCollector_GetData(t *testing.T) {
 	service.On("ListInstances", p2, z2).Return(list4, nil).Once()
 	collector.service = service
 
-	ct := &mockCounterInterface{}
+	ct := &mockInstancesCounterInterface{}
 	ct.On("Add", p1, z1, list1.Items).Once()
 	ct.On("Add", p1, z2, list2.Items).Once()
 	ct.On("Add", p2, z1, list3.Items).Once()
 	ct.On("Add", p2, z2, list4.Items).Once()
 
-	newCounter = func() counterInterface {
+	newInstancesCounter = func() instancesCounterInterface {
 		return ct
 	}
 
@@ -121,7 +133,7 @@ func TestCollector_GetData(t *testing.T) {
 	ct.AssertExpectations(t)
 }
 
-func TestCollector_GetData_TagFiltered(t *testing.T) {
+func TestInstancesCollector_GetData_TagFiltered(t *testing.T) {
 	examples := map[string]bool{
 		"use-tags":      true,
 		"dont-use-tags": false,
@@ -135,7 +147,7 @@ func TestCollector_GetData_TagFiltered(t *testing.T) {
 			tag1 := "tag-1"
 			tag2 := "tag-2"
 
-			collector := NewCollector()
+			collector := NewInstancesCollector(&Common{})
 			collector.Projects = append(collector.Projects, p1)
 			collector.Zones = append(collector.Zones, z1)
 
@@ -155,7 +167,7 @@ func TestCollector_GetData_TagFiltered(t *testing.T) {
 			service.On("ListInstances", p1, z1).Return(list1, nil).Once()
 			collector.service = service
 
-			ct := &mockCounterInterface{}
+			ct := &mockInstancesCounterInterface{}
 			ct.On("Add", p1, z1, mock.Anything).Run(func(args mock.Arguments) {
 				list := args[2].([]*compute.Instance)
 				existingInstances := make(map[uint64]*compute.Instance, 0)
@@ -176,7 +188,7 @@ func TestCollector_GetData_TagFiltered(t *testing.T) {
 				}
 			}).Once()
 
-			newCounter = func() counterInterface {
+			newInstancesCounter = func() instancesCounterInterface {
 				return ct
 			}
 
@@ -191,8 +203,8 @@ func TestCollector_GetData_TagFiltered(t *testing.T) {
 	}
 }
 
-func TestCollector_GetData_ListInstancesError(t *testing.T) {
-	collector := NewCollector()
+func TestInstancesCollector_GetData_ListInstancesError(t *testing.T) {
+	collector := NewInstancesCollector(&Common{})
 	collector.Projects = append(collector.Projects, "fake-project-1")
 	collector.Zones = append(collector.Zones, "fake-zone-1")
 

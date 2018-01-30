@@ -18,6 +18,11 @@ func (_m *MockMapInterface) Add(_a0 collector.Interface) {
 	_m.Called(_a0)
 }
 
+// AddFlagsFrom provides a mock function with given fields: _a0
+func (_m *MockMapInterface) AddFlagsFrom(_a0 interface{}) {
+	_m.Called(_a0)
+}
+
 // EnableFlagNames provides a mock function with given fields:
 func (_m *MockMapInterface) EnableFlagNames() map[string]string {
 	ret := _m.Called()

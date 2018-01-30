@@ -1,4 +1,4 @@
-package instances
+package compute
 
 import (
 	"fmt"
@@ -24,31 +24,31 @@ var (
 )
 
 const (
-	CollectorName = "instances-collector"
+	InstancesCollectorName = "instances-collector"
 )
 
-type permutation struct {
+type instancesPermutation struct {
 	Project string
 	Zone    string
 	Tags    string
 }
 
-type counterInterface interface {
-	Add(project string, zone string, instances []*compute.Instance)
-	Collect(ch chan<- prometheus.Metric)
+type instancesCounterInterface interface {
+	Add(string, string, []*compute.Instance)
+	Collect(chan<- prometheus.Metric)
 }
 
-type counter struct {
-	count map[permutation]int
+type instancesCounter struct {
+	count map[instancesPermutation]int
 	lock  sync.RWMutex
 }
 
-func (ic *counter) Add(project string, zone string, instances []*compute.Instance) {
+func (ic *instancesCounter) Add(project string, zone string, instances []*compute.Instance) {
 	ic.lock.Lock()
 	defer ic.lock.Unlock()
 
 	for _, instance := range instances {
-		permutation := permutation{
+		permutation := instancesPermutation{
 			Project: project,
 			Zone:    zone,
 		}
@@ -57,7 +57,8 @@ func (ic *counter) Add(project string, zone string, instances []*compute.Instanc
 			permutation.Tags = strings.Join(instance.Tags.Items, ",")
 		}
 
-		if _, ok := ic.count[permutation]; ok {
+		_, ok := ic.count[permutation]
+		if ok {
 			ic.count[permutation]++
 		} else {
 			ic.count[permutation] = 1
@@ -65,7 +66,7 @@ func (ic *counter) Add(project string, zone string, instances []*compute.Instanc
 	}
 }
 
-func (ic *counter) Collect(ch chan<- prometheus.Metric) {
+func (ic *instancesCounter) Collect(ch chan<- prometheus.Metric) {
 	for permutation, count := range ic.count {
 		ch <- prometheus.MustNewConstMetric(
 			numberOfInstances,
@@ -78,77 +79,76 @@ func (ic *counter) Collect(ch chan<- prometheus.Metric) {
 	}
 }
 
-var newCounter = func() counterInterface {
-	return &counter{
-		count: make(map[permutation]int),
+var newInstancesCounter = func() instancesCounterInterface {
+	return &instancesCounter{
+		count: make(map[instancesPermutation]int),
 	}
 }
 
-type Collector struct {
-	Projects  []string `long:"project" description:"Count instances that belong to selected project"`
-	Zones     []string `long:"zone" description:"Count instances that belong to selected zone"`
+type InstancesCollector struct {
+	*Common
+
 	MatchTags []string `long:"match-tag" description:"Count instances that are matching selected tag"`
 
 	service   services.ComputeServiceInterface
-	instances counterInterface
+	instances instancesCounterInterface
 
 	initialized    bool
 	initalizedLock sync.RWMutex
 }
 
-func (ic *Collector) GetName() string {
-	return CollectorName
+func (c *InstancesCollector) GetName() string {
+	return InstancesCollectorName
 }
 
-func (ic *Collector) GetData() error {
-	if !ic.isInitialized() {
+func (c *InstancesCollector) GetData() error {
+	if !c.isInitialized() {
 		return fmt.Errorf("instances collector not initialized")
 	}
 
-	if ic.service == nil {
+	if c.service == nil {
 		return fmt.Errorf("instances collector compute.Service is not initialized")
 	}
 
-	count := newCounter()
-
-	for _, project := range ic.Projects {
-		for _, zone := range ic.Zones {
+	count := newInstancesCounter()
+	for _, project := range c.GetProjects() {
+		for _, zone := range c.GetZones() {
 			logrus.WithFields(logrus.Fields{
 				"project": project,
 				"zone":    zone,
 			}).Debugf("Requesting instances")
 
-			instances, err := ic.service.ListInstances(project, zone)
+			instances, err := c.service.ListInstances(project, zone)
 			if err != nil {
 				return fmt.Errorf("error while requesting instances data: %v", err)
 			}
 
 			logrus.WithField("count", len(instances.Items)).Debugln("Found instances")
 
-			selectedInstances := ic.filterInstances(instances.Items)
+			selectedInstances := c.filterInstances(instances.Items)
 			count.Add(project, zone, selectedInstances)
 		}
 	}
 
-	ic.instances = count
+	c.instances = count
 
 	return nil
 }
 
-func (ic *Collector) isInitialized() bool {
-	ic.initalizedLock.RLock()
-	defer ic.initalizedLock.RUnlock()
+func (c *InstancesCollector) isInitialized() bool {
+	c.initalizedLock.RLock()
+	defer c.initalizedLock.RUnlock()
 
-	return ic.initialized
+	return c.initialized
 }
 
-func (ic *Collector) filterInstances(instances []*compute.Instance) []*compute.Instance {
-	if len(ic.MatchTags) < 1 {
+func (c *InstancesCollector) filterInstances(instances []*compute.Instance) []*compute.Instance {
+	if len(c.MatchTags) < 1 {
 		return instances
 	}
 
 	selectedInstancesMap := make(map[uint64]*compute.Instance, 0)
-	for _, matchTag := range ic.MatchTags {
+	for _, matchTag := range c.MatchTags {
 		logrus.WithField("matchTag", matchTag).Debugln("Filtering by tag")
 		for _, instance := range instances {
 			if instance.Tags == nil || len(instance.Tags.Items) < 1 {
@@ -172,39 +172,40 @@ func (ic *Collector) filterInstances(instances []*compute.Instance) []*compute.I
 	return selectedInstances
 }
 
-func (ic *Collector) Describe(ch chan<- *prometheus.Desc) {
+func (c *InstancesCollector) Describe(ch chan<- *prometheus.Desc) {
 	ch <- numberOfInstances
 }
 
-func (ic *Collector) Collect(ch chan<- prometheus.Metric) {
-	ic.instances.Collect(ch)
+func (c *InstancesCollector) Collect(ch chan<- prometheus.Metric) {
+	c.instances.Collect(ch)
 }
 
-func (ic *Collector) Init(client *http.Client) error {
+func (c *InstancesCollector) Init(client *http.Client) error {
 	var err error
 
-	ic.service, err = services.NewComputeService(client)
+	c.service, err = services.NewComputeService(client)
 	if err != nil {
 		return fmt.Errorf("error while initializing computeService: %v", err)
 	}
 
 	logrus.WithFields(logrus.Fields{
-		"projects":  strings.Join(ic.Projects, ","),
-		"zones":     strings.Join(ic.Zones, ","),
-		"matchTags": strings.Join(ic.MatchTags, ","),
+		"projects":  strings.Join(c.GetProjects(), ","),
+		"zones":     strings.Join(c.GetZones(), ","),
+		"matchTags": strings.Join(c.MatchTags, ","),
 	}).Info("Registered collector")
 
-	ic.initalizedLock.Lock()
-	defer ic.initalizedLock.Unlock()
+	c.initalizedLock.Lock()
+	defer c.initalizedLock.Unlock()
 
-	ic.initialized = true
+	c.initialized = true
 
 	return nil
 }
 
-func NewCollector() *Collector {
-	return &Collector{
-		instances:   newCounter(),
+func NewInstancesCollector(c *Common) *InstancesCollector {
+	return &InstancesCollector{
+		Common:      c,
+		instances:   newInstancesCounter(),
 		initialized: false,
 	}
 }

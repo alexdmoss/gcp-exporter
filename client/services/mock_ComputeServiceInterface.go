@@ -12,6 +12,29 @@ type MockComputeServiceInterface struct {
 	mock.Mock
 }
 
+// GetRegion provides a mock function with given fields: project, region
+func (_m *MockComputeServiceInterface) GetRegion(project string, region string) (*compute.Region, error) {
+	ret := _m.Called(project, region)
+
+	var r0 *compute.Region
+	if rf, ok := ret.Get(0).(func(string, string) *compute.Region); ok {
+		r0 = rf(project, region)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*compute.Region)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(string, string) error); ok {
+		r1 = rf(project, region)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // ListInstances provides a mock function with given fields: project, zone
 func (_m *MockComputeServiceInterface) ListInstances(project string, zone string) (*compute.InstanceList, error) {
 	ret := _m.Called(project, zone)
