@@ -52,3 +52,38 @@ func TestAppVersionInfo_Extended(t *testing.T) {
 	assert.Regexp(t, regexp.MustCompile(fmt.Sprintf("Built:\\s+%s", ts)), info)
 	assert.Regexp(t, regexp.MustCompile("OS/Arch:\\s+linux/amd64"), info)
 }
+
+func TestNewAppVersionInfo(t *testing.T) {
+	examples := map[string]struct {
+		name     string
+		version  string
+		revision string
+		branch   string
+		built    string
+	}{
+		"with-current-time": {name: "application", version: "1.2.3", revision: "a1b2c3d4", branch: "master", built: "now"},
+		"with-defined-time": {name: "application", version: "1.2.3", revision: "a1b2c3d4", branch: "master", built: currentTestTime.Format(time.RFC3339)},
+	}
+
+	for name, example := range examples {
+		t.Run(name, func(t *testing.T) {
+			avi := NewAppVersionInfo(example.name, example.version, example.revision, example.branch, example.built)
+
+			info := avi.Extended()
+
+			assert.Regexp(t, regexp.MustCompile("Version:\\s+1.2.3"), info)
+			assert.Regexp(t, regexp.MustCompile("Git revision:\\s+a1b2c3d4"), info)
+			assert.Regexp(t, regexp.MustCompile("Git branch:\\s+master"), info)
+
+			ts := strings.Replace(example.built, "+", ".", -1)
+			tsRegexp := regexp.MustCompile(fmt.Sprintf("Built:\\s+%s", ts))
+			if example.built == "now" {
+				assert.NotRegexp(t, tsRegexp, info)
+			} else {
+				assert.Regexp(t, tsRegexp, info)
+			}
+
+			assert.Contains(t, avi.Line(), example.name)
+		})
+	}
+}
