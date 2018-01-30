@@ -1,6 +1,6 @@
 # GCP Exporter changelog
 
-## unreleased
+## v0.3 (2018-01-30)
 
 - Label instances count metric with machine_type
 
