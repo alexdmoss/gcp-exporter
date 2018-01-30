@@ -51,11 +51,20 @@ Starts the exporter.
 | `--interval`                   | integer | no        | Number of seconds between requesting data from GCP (default: `60`) |
 | `--service-account-file`       | string  | no        | Path to GCP Service Account JSON file (default: `~/.google-service-account.json`) |
 | `--instances-collector-enable` | bool    | no        | Enables instances collector |
-| `--project`                    | string  | no        | Count instances that belong to selected project; may be used multiple times |
-| `--zone`                       | string  | no        | Count instances that belong to selected zone; may be used multiple times |
+| `--project`                    | string  | no        | Select projects that should be used during requests; may be used multiple times |
+| `--zone`                       | string  | no        | Select zones that should be used during requests; may be used multiple times |
 | `--match-tag`                  | string  | no        | Count instances that are matching selected tag; may be used multiple times |
+| `--regions-collector-enable`   | bool    | no        | Enables regions collector |
 
 1. Instances collector will look for instances for all defined `project+zone` pairs.
+
+1. Regions collector will re-use the `zone` values and generate regions identifiers from them. For example GCP defined
+   an `us-east1` region with `us-east1-b`, `us-east1-c` and `us-east1-d` zones. It also defines `us-east4` region with
+   `us-east4-a`, `us-east4-b` and `us-east4-c` zones. If `us-east1-c` and `us-east4-a` will be used as values for `zone`
+   option, regions collector will extract `us-east1` and `us-east4` and use them as specified regions.
+
+1. Regions collector will look for quotas for all defined `project+region` pairs.
+
 1. If `match-tag` is used, then an instance will be counted if it matches any of specified tags.
 
 **Example usage** 
