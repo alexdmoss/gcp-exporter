@@ -16,8 +16,8 @@ import (
 )
 
 func TestInstancesCounter_Add(t *testing.T) {
-	instance1 := &compute.Instance{}
-	instance2 := &compute.Instance{}
+	instance1 := &compute.Instance{Tags: &compute.Tags{Items: []string{"fake-tag"}}, MachineType: "n1-standard-1"}
+	instance2 := &compute.Instance{Tags: &compute.Tags{Items: []string{"fake-tag"}}, MachineType: "n1-standard-1"}
 
 	c := newInstancesCounter().(*instancesCounter)
 	c.Add("project", "zone", []*compute.Instance{instance1})
@@ -26,9 +26,10 @@ func TestInstancesCounter_Add(t *testing.T) {
 	assert.Len(t, c.count, 1)
 
 	p := instancesPermutation{
-		Project: "project",
-		Zone:    "zone",
-		Tags:    "",
+		Project:     "project",
+		Zone:        "zone",
+		Tags:        "fake-tag",
+		MachineType: "n1-standard-1",
 	}
 	assert.Equal(t, 2, c.count[p])
 }

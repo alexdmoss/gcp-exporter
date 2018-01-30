@@ -18,7 +18,7 @@ var (
 	numberOfInstances = prometheus.NewDesc(
 		"gcp_exporter_instances_count",
 		"Current number of instances",
-		[]string{"project", "zone", "tags"},
+		[]string{"project", "zone", "tags", "machine_type"},
 		nil,
 	)
 )
@@ -28,9 +28,10 @@ const (
 )
 
 type instancesPermutation struct {
-	Project string
-	Zone    string
-	Tags    string
+	Project     string
+	Zone        string
+	Tags        string
+	MachineType string
 }
 
 type instancesCounterInterface interface {
@@ -49,8 +50,9 @@ func (ic *instancesCounter) Add(project string, zone string, instances []*comput
 
 	for _, instance := range instances {
 		permutation := instancesPermutation{
-			Project: project,
-			Zone:    zone,
+			Project:     project,
+			Zone:        zone,
+			MachineType: instance.MachineType,
 		}
 
 		if instance.Tags != nil {
@@ -75,6 +77,7 @@ func (ic *instancesCounter) Collect(ch chan<- prometheus.Metric) {
 			permutation.Project,
 			permutation.Zone,
 			permutation.Tags,
+			permutation.MachineType,
 		)
 	}
 }

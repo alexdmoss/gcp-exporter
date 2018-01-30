@@ -1,5 +1,9 @@
 # GCP Exporter changelog
 
+## unreleased
+
+- Label instances count metric with machine_type
+
 ## v0.2 (2018-01-30)
 
 - Add get-token command
