@@ -125,6 +125,7 @@ func init() {
 
 	collectors := []col.Interface{
 		compute.NewInstancesCollector(computeCommon),
+		compute.NewRegionsCollector(computeCommon),
 	}
 
 	for _, collector := range collectors {
