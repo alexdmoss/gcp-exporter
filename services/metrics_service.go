@@ -65,12 +65,17 @@ func (hs *HTTPServer) ListenAndServe() error {
 	return hs.s.Shutdown(timeoutCtx)
 }
 
+type PrometheusRegistryInterface interface {
+	prometheus.Registerer
+	prometheus.Gatherer
+}
+
 type MetricsService struct {
 	ctx context.Context
 	wg  *sync.WaitGroup
 
 	listenAddr string
-	registry   *prometheus.Registry
+	registry   PrometheusRegistryInterface
 	server     HTTPServerInterface
 }
 
@@ -125,19 +130,33 @@ func (ms *MetricsService) prepareServer() error {
 	return nil
 }
 
+func (ms *MetricsService) RegisterDefaultCollectors() {
+	ms.initializeRegistry()
+
+	ms.MustRegisterPrometheusCollector(prometheus.NewGoCollector())
+	ms.MustRegisterPrometheusCollector(prometheus.NewProcessCollector(os.Getpid(), ""))
+}
+
 func (ms *MetricsService) MustRegisterPrometheusCollector(cs ...prometheus.Collector) {
+	ms.initializeRegistry()
+
 	ms.registry.MustRegister(cs...)
 }
 
-func NewMetricsService(ctx context.Context, listenAddr string, wg *sync.WaitGroup) *MetricsService {
-	reg := prometheus.NewRegistry()
-	reg.MustRegister(prometheus.NewGoCollector())
-	reg.MustRegister(prometheus.NewProcessCollector(os.Getpid(), ""))
+var newPrometheusRegistry = func() PrometheusRegistryInterface {
+	return prometheus.NewRegistry()
+}
 
+func (ms *MetricsService) initializeRegistry() {
+	if ms.registry == nil {
+		ms.registry = newPrometheusRegistry()
+	}
+}
+
+func NewMetricsService(ctx context.Context, listenAddr string, wg *sync.WaitGroup) *MetricsService {
 	return &MetricsService{
 		ctx:        ctx,
 		listenAddr: listenAddr,
-		registry:   reg,
 		wg:         wg,
 	}
 }

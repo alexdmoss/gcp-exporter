@@ -100,6 +100,7 @@ func (sc *StartExporterServiceCommand) startMetricsServer(cliCtx *cli.Context) e
 	sc.wg.Add(1)
 
 	ms := services.NewMetricsService(sc.ctx, listenAddr, sc.wg)
+	ms.RegisterDefaultCollectors()
 	ms.MustRegisterPrometheusCollector(sc.provider)
 	ms.MustRegisterPrometheusCollector(version.AppVersion.VersionCollector())
 	err := ms.StartServer()

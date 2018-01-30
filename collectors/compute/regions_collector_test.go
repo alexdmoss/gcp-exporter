@@ -48,6 +48,11 @@ func TestRegionQuotasCounter_Collect(t *testing.T) {
 	assert.Len(t, ch, 2)
 }
 
+func TestRegionsCollector_GetName(t *testing.T) {
+	collector := NewRegionsCollector(&Common{})
+	assert.Equal(t, "regions-collector", collector.GetName())
+}
+
 func TestRegionsCollector_Init(t *testing.T) {
 	collector := NewRegionsCollector(&Common{})
 	err := collector.Init(http.DefaultClient)
@@ -142,4 +147,31 @@ func TestRegionsCollector_GetData_GetRegionError(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "error while requesting region data: fake-get-region-error")
 	service.AssertExpectations(t)
+}
+
+func TestRegionsCollector_Describe(t *testing.T) {
+	ch := make(chan<- *prometheus.Desc, 50)
+	defer close(ch)
+
+	collector := NewRegionsCollector(&Common{})
+	collector.Describe(ch)
+
+	assert.Len(t, ch, 2)
+}
+
+func TestRegionsCollector_Collect(t *testing.T) {
+	ch := make(chan<- prometheus.Metric, 50)
+	defer close(ch)
+
+	ct := &mockRegionQuotasCounterInterface{}
+	ct.On("Collect", ch).Once()
+
+	newRegionQuotasCounter = func() regionQuotasCounterInterface {
+		return ct
+	}
+
+	collector := NewRegionsCollector(&Common{})
+	collector.Collect(ch)
+
+	ct.AssertExpectations(t)
 }

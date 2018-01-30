@@ -51,6 +51,39 @@ func TestProvider_Init(t *testing.T) {
 	})
 }
 
+func TestProvider_Init_noCollectorEnable(t *testing.T) {
+	tests.RunOnHijackedLogrusOutput(t, func(t *testing.T, output *bytes.Buffer) {
+		c1 := &col.MockInterface{}
+		c1.AssertNotCalled(t, "Init")
+		defer c1.AssertExpectations(t)
+		c2 := &col.MockInterface{}
+		c2.AssertNotCalled(t, "Init")
+		defer c2.AssertExpectations(t)
+
+		coll := &MockMapInterface{}
+		coll.On("EnableFlagNames").Return(map[string]string{
+			"first-fake-collector":  "first-fake-collector-enable",
+			"second-fake-collector": "second-fake-collector-enable",
+		}).Once()
+		coll.AssertNotCalled(t, "Get")
+		defer coll.AssertExpectations(t)
+		Collectors = coll
+
+		set := flag.NewFlagSet("app", flag.ContinueOnError)
+		f1 := &cli.BoolFlag{Name: "first-fake-collector-enable"}
+		f1.Apply(set)
+		f2 := &cli.BoolFlag{Name: "second-fake-collector-enable"}
+		f2.Apply(set)
+		cliCtx := cli.NewContext(cli.NewApp(), set, nil)
+
+		p := NewProvider(http.DefaultClient)
+		p.Init(cliCtx)
+
+		assert.NotContains(t, output.String(), "Enabling first-fake-collector")
+		assert.NotContains(t, output.String(), "Enabling second-fake-collector")
+	})
+}
+
 func TestProvider_InitCollectorFailure(t *testing.T) {
 	tests.RunOnHijackedLogrusOutput(t, func(t *testing.T, output *bytes.Buffer) {
 		c1 := &col.MockInterface{}

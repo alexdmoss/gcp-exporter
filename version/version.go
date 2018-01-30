@@ -81,20 +81,24 @@ func (v *AppVersionInfo) VersionCollector() *prometheus.GaugeVec {
 	return buildInfo
 }
 
-func init() {
-	builtAt := time.Now()
-	if BUILT != "now" {
-		builtAt, _ = time.Parse(time.RFC3339, BUILT)
+func NewAppVersionInfo(name, version, revision, branch, builtAt string) AppVersionInfo {
+	built := time.Now()
+	if builtAt != "now" {
+		built, _ = time.Parse(time.RFC3339, builtAt)
 	}
 
-	AppVersion = AppVersionInfo{
-		Name:         NAME,
-		Version:      VERSION,
-		Revision:     REVISION,
-		Branch:       BRANCH,
+	return AppVersionInfo{
+		Name:         name,
+		Version:      version,
+		Revision:     revision,
+		Branch:       branch,
 		GOVersion:    runtime.Version(),
-		BuiltAt:      builtAt,
+		BuiltAt:      built,
 		OS:           runtime.GOOS,
 		Architecture: runtime.GOARCH,
 	}
+}
+
+func init() {
+	AppVersion = NewAppVersionInfo(NAME, VERSION, REVISION, BRANCH, BUILT)
 }

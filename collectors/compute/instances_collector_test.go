@@ -50,6 +50,11 @@ func TestInstancesCounter_Collect(t *testing.T) {
 	assert.Len(t, ch, 1)
 }
 
+func TestInstancesCollector_GetName(t *testing.T) {
+	collector := NewInstancesCollector(&Common{})
+	assert.Equal(t, "instances-collector", collector.GetName())
+}
+
 func TestInstancesCollector_Init(t *testing.T) {
 	collector := NewInstancesCollector(&Common{})
 	err := collector.Init(http.DefaultClient)
@@ -219,4 +224,31 @@ func TestInstancesCollector_GetData_ListInstancesError(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "error while requesting instances data: fake-list-instances-error")
 	service.AssertExpectations(t)
+}
+
+func TestInstancesCollector_Describe(t *testing.T) {
+	ch := make(chan<- *prometheus.Desc, 50)
+	defer close(ch)
+
+	collector := NewInstancesCollector(&Common{})
+	collector.Describe(ch)
+
+	assert.Len(t, ch, 1)
+}
+
+func TestInstancesCollector_Collect(t *testing.T) {
+	ch := make(chan<- prometheus.Metric, 50)
+	defer close(ch)
+
+	ct := &mockInstancesCounterInterface{}
+	ct.On("Collect", ch).Once()
+
+	newInstancesCounter = func() instancesCounterInterface {
+		return ct
+	}
+
+	collector := NewInstancesCollector(&Common{})
+	collector.Collect(ch)
+
+	ct.AssertExpectations(t)
 }

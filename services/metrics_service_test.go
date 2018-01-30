@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"gitlab.com/gitlab-org/ci-cd/gcp-exporter/tests"
 )
 
@@ -80,12 +81,8 @@ func TestMetricsService_StartServer_ValidPort(t *testing.T) {
 				wg := &sync.WaitGroup{}
 				wg.Add(1)
 
-				ms := &MetricsService{
-					ctx:        ctx,
-					listenAddr: example,
-					server:     s,
-					wg:         wg,
-				}
+				ms := NewMetricsService(ctx, example, wg)
+				ms.server = s
 
 				err := ms.StartServer()
 				assert.NoError(t, err)
@@ -145,4 +142,56 @@ func TestMetricsService_StartServer_ListenAndServeFailure(t *testing.T) {
 	e, ok := err.(*exec.ExitError)
 	require.True(t, ok, "Process should be finished with non-zero exit code")
 	assert.False(t, e.Success(), "Process should be finished with non-zero exit code")
+}
+
+type fakeCollector struct{}
+
+func (fc *fakeCollector) Describe(chan<- *prometheus.Desc) {}
+func (fc *fakeCollector) Collect(chan<- prometheus.Metric) {}
+
+func TestMetricsService_MustRegisterPrometheusCollector(t *testing.T) {
+	collector1 := &fakeCollector{}
+	collector2 := &fakeCollector{}
+	collector3 := &fakeCollector{}
+
+	r := &MockPrometheusRegistryInterface{}
+	r.On("MustRegister", collector1, collector2).Once()
+	r.On("MustRegister", collector3).Once()
+
+	ms := &MetricsService{
+		registry: r,
+	}
+	ms.MustRegisterPrometheusCollector(collector1, collector2)
+	ms.MustRegisterPrometheusCollector(collector3)
+
+	r.AssertExpectations(t)
+}
+
+func TestMetricsService_MustRegisterPrometheusCollector_withUninitializedRegistry(t *testing.T) {
+	collector1 := &fakeCollector{}
+
+	r := &MockPrometheusRegistryInterface{}
+	r.On("MustRegister", collector1).Once()
+
+	newPrometheusRegistry = func() PrometheusRegistryInterface {
+		return r
+	}
+
+	ms := &MetricsService{}
+
+	ms.MustRegisterPrometheusCollector(collector1)
+	r.AssertExpectations(t)
+}
+
+func TestMetricsService_RegisterDefaultCollectors(t *testing.T) {
+	r := &MockPrometheusRegistryInterface{}
+	r.On("MustRegister", mock.Anything).Twice()
+
+	ms := &MetricsService{
+		registry: r,
+	}
+
+	ms.RegisterDefaultCollectors()
+
+	r.AssertExpectations(t)
 }
