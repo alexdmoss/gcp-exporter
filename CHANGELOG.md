@@ -1,5 +1,9 @@
 # GCP Exporter changelog
 
+## v0.4 (2018-09-04)
+
+- Support pagination for instance listing requests
+
 ## v0.3 (2018-01-30)
 
 - Label instances count metric with machine_type
