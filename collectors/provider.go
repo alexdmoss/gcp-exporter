@@ -1,6 +1,7 @@
 package collectors
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"time"
@@ -39,7 +40,7 @@ type ProviderInterface interface {
 	prometheus.Collector
 
 	Init(*cli.Context) error
-	GetData()
+	GetData(ctx context.Context)
 }
 
 type Provider struct {
@@ -76,11 +77,11 @@ func (p *Provider) registerCollector(collectorName string, collector col.Interfa
 	return collector.Init(p.client)
 }
 
-func (p *Provider) GetData() {
+func (p *Provider) GetData(ctx context.Context) {
 	logrus.Infoln("Getting data from GCP")
 
 	for _, collector := range p.collectors {
-		err := collector.GetData()
+		err := collector.GetData(ctx)
 		if err != nil {
 			logrus.WithError(err).Errorln("Error while getting data from GCP")
 			p.getDataErrors++

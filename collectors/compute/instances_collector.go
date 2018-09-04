@@ -1,6 +1,7 @@
 package compute
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"strings"
@@ -106,7 +107,7 @@ func (c *InstancesCollector) GetName() string {
 	return InstancesCollectorName
 }
 
-func (c *InstancesCollector) GetData() error {
+func (c *InstancesCollector) GetData(ctx context.Context) error {
 	if !c.isInitialized() {
 		return fmt.Errorf("instances collector not initialized")
 	}
@@ -123,7 +124,7 @@ func (c *InstancesCollector) GetData() error {
 				"zone":    zone,
 			}).Debugf("Requesting instances")
 
-			instances, err := c.service.ListInstances(project, zone, c.PerPage)
+			instances, err := c.service.ListInstances(ctx, project, zone, c.PerPage)
 			if err != nil {
 				return fmt.Errorf("error while requesting instances data: %v", err)
 			}

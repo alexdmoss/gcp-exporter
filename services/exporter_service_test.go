@@ -16,8 +16,8 @@ func TestExporterService_Run(t *testing.T) {
 	ctx, cancelFn := context.WithCancel(context.Background())
 
 	p := &collectors.MockProviderInterface{}
-	p.On("GetData").Twice()
-	p.On("GetData").Run(func(args mock.Arguments) {
+	p.On("GetData", ctx).Twice()
+	p.On("GetData", ctx).Run(func(args mock.Arguments) {
 		cancelFn()
 	}).Once()
 	defer p.AssertExpectations(t)

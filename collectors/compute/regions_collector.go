@@ -1,6 +1,7 @@
 package compute
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"strings"
@@ -120,7 +121,7 @@ func (c *RegionsCollector) GetName() string {
 	return RegionsCollectorName
 }
 
-func (c *RegionsCollector) GetData() error {
+func (c *RegionsCollector) GetData(ctx context.Context) error {
 	if !c.isInitialized() {
 		return fmt.Errorf("instances collector not initialized")
 	}
@@ -137,7 +138,7 @@ func (c *RegionsCollector) GetData() error {
 				"region":  region,
 			}).Debugf("Requesting region")
 
-			reg, err := c.service.GetRegion(project, region)
+			reg, err := c.service.GetRegion(ctx, project, region)
 			if err != nil {
 				return fmt.Errorf("error while requesting region data: %v", err)
 			}

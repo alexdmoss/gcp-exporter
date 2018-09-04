@@ -1,6 +1,7 @@
 package compute
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"testing"
@@ -76,7 +77,7 @@ func TestInstancesCollector_GetData_withoutInitialize(t *testing.T) {
 	collector.Projects = append(collector.Projects, "fake-project")
 	collector.Zones = append(collector.Zones, "fake-zone")
 
-	err := collector.GetData()
+	err := collector.GetData(context.Background())
 
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "collector not initialized")
@@ -88,7 +89,7 @@ func TestInstancesCollector_GetData_withoutComputeService(t *testing.T) {
 	collector.Zones = append(collector.Zones, "fake-zone")
 	collector.initialized = true
 
-	err := collector.GetData()
+	err := collector.GetData(context.Background())
 
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "instances collector compute.Service is not initialized")
@@ -114,10 +115,10 @@ func TestInstancesCollector_GetData(t *testing.T) {
 	list4 := make([]*compute.Instance, 0)
 
 	service := &services.MockComputeServiceInterface{}
-	service.On("ListInstances", p1, z1, mock.Anything).Return(list1, nil).Once()
-	service.On("ListInstances", p1, z2, mock.Anything).Return(list2, nil).Once()
-	service.On("ListInstances", p2, z1, mock.Anything).Return(list3, nil).Once()
-	service.On("ListInstances", p2, z2, mock.Anything).Return(list4, nil).Once()
+	service.On("ListInstances", mock.Anything, p1, z1, mock.Anything).Return(list1, nil).Once()
+	service.On("ListInstances", mock.Anything, p1, z2, mock.Anything).Return(list2, nil).Once()
+	service.On("ListInstances", mock.Anything, p2, z1, mock.Anything).Return(list3, nil).Once()
+	service.On("ListInstances", mock.Anything, p2, z2, mock.Anything).Return(list4, nil).Once()
 	collector.service = service
 
 	ct := &mockInstancesCounterInterface{}
@@ -132,7 +133,7 @@ func TestInstancesCollector_GetData(t *testing.T) {
 
 	collector.initialized = true
 
-	err := collector.GetData()
+	err := collector.GetData(context.Background())
 
 	require.NoError(t, err)
 	service.AssertExpectations(t)
@@ -170,7 +171,7 @@ func TestInstancesCollector_GetData_TagFiltered(t *testing.T) {
 			list1 := []*compute.Instance{instance1, instance2, instance3, instance4, instance5}
 
 			service := &services.MockComputeServiceInterface{}
-			service.On("ListInstances", p1, z1, mock.Anything).Return(list1, nil).Once()
+			service.On("ListInstances", mock.Anything, p1, z1, mock.Anything).Return(list1, nil).Once()
 			collector.service = service
 
 			ct := &mockInstancesCounterInterface{}
@@ -200,7 +201,7 @@ func TestInstancesCollector_GetData_TagFiltered(t *testing.T) {
 
 			collector.initialized = true
 
-			err := collector.GetData()
+			err := collector.GetData(context.Background())
 
 			require.NoError(t, err)
 			service.AssertExpectations(t)
@@ -215,12 +216,12 @@ func TestInstancesCollector_GetData_ListInstancesError(t *testing.T) {
 	collector.Zones = append(collector.Zones, "fake-zone-1")
 
 	service := &services.MockComputeServiceInterface{}
-	service.On("ListInstances", "fake-project-1", "fake-zone-1", mock.Anything).Return(nil, fmt.Errorf("fake-list-instances-error")).Once()
+	service.On("ListInstances", mock.Anything, "fake-project-1", "fake-zone-1", mock.Anything).Return(nil, fmt.Errorf("fake-list-instances-error")).Once()
 	collector.service = service
 
 	collector.initialized = true
 
-	err := collector.GetData()
+	err := collector.GetData(context.Background())
 
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "error while requesting instances data: fake-list-instances-error")

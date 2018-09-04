@@ -21,11 +21,11 @@ type ExporterService struct {
 func (es *ExporterService) Run() error {
 	logrus.Infof("GCP data gathering interval: %s", es.interval)
 
-	es.collectorProvider.GetData()
+	es.collectorProvider.GetData(es.ctx)
 	for {
 		select {
 		case <-time.After(es.interval):
-			es.collectorProvider.GetData()
+			es.collectorProvider.GetData(es.ctx)
 		case <-es.ctx.Done():
 			es.wg.Done()
 			return nil

@@ -1,6 +1,7 @@
 package collectors
 
 import (
+	"context"
 	"net/http"
 	"testing"
 
@@ -66,7 +67,7 @@ type fakeCollector struct {
 
 func (fc *fakeCollector) Init(*http.Client) error             { return nil }
 func (fc *fakeCollector) GetName() string                     { return "fake-collector " }
-func (fc *fakeCollector) GetData() error                      { return nil }
+func (fc *fakeCollector) GetData(ctx context.Context) error   { return nil }
 func (fc *fakeCollector) Describe(ch chan<- *prometheus.Desc) {}
 func (fc *fakeCollector) Collect(ch chan<- prometheus.Metric) {}
 

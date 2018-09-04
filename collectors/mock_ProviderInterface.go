@@ -5,6 +5,7 @@
 package collectors
 
 import cli "github.com/urfave/cli"
+import context "context"
 import mock "github.com/stretchr/testify/mock"
 import prometheus "github.com/prometheus/client_golang/prometheus"
 
@@ -23,9 +24,9 @@ func (_m *MockProviderInterface) Describe(_a0 chan<- *prometheus.Desc) {
 	_m.Called(_a0)
 }
 
-// GetData provides a mock function with given fields:
-func (_m *MockProviderInterface) GetData() {
-	_m.Called()
+// GetData provides a mock function with given fields: ctx
+func (_m *MockProviderInterface) GetData(ctx context.Context) {
+	_m.Called(ctx)
 }
 
 // Init provides a mock function with given fields: _a0
