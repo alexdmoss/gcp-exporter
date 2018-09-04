@@ -57,18 +57,18 @@ func TestComputeService_ListInstances_notAuthorized(t *testing.T) {
 	c, err := NewComputeService(getFakeClient(t))
 	assert.NoError(t, err)
 
-	instancesList, err := c.ListInstances("fake-project", "fake-zone")
+	instancesList, err := c.ListInstances("fake-project", "fake-zone", 10)
 
-	assert.Nil(t, instancesList)
+	assert.Empty(t, instancesList)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "Error 401: Login Required")
 }
 
 func TestComputeService_ListInstances_notInitialized(t *testing.T) {
 	c := &ComputeService{}
-	instancesList, err := c.ListInstances("fake-project", "fake-zone")
+	instancesList, err := c.ListInstances("fake-project", "fake-zone", 10)
 
-	assert.Nil(t, instancesList)
+	assert.Empty(t, instancesList)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "service not initialized")
 }

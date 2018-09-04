@@ -35,22 +35,22 @@ func (_m *MockComputeServiceInterface) GetRegion(project string, region string) 
 	return r0, r1
 }
 
-// ListInstances provides a mock function with given fields: project, zone
-func (_m *MockComputeServiceInterface) ListInstances(project string, zone string) (*compute.InstanceList, error) {
-	ret := _m.Called(project, zone)
+// ListInstances provides a mock function with given fields: project, zone, perPage
+func (_m *MockComputeServiceInterface) ListInstances(project string, zone string, perPage int64) ([]*compute.Instance, error) {
+	ret := _m.Called(project, zone, perPage)
 
-	var r0 *compute.InstanceList
-	if rf, ok := ret.Get(0).(func(string, string) *compute.InstanceList); ok {
-		r0 = rf(project, zone)
+	var r0 []*compute.Instance
+	if rf, ok := ret.Get(0).(func(string, string, int64) []*compute.Instance); ok {
+		r0 = rf(project, zone, perPage)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*compute.InstanceList)
+			r0 = ret.Get(0).([]*compute.Instance)
 		}
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(string, string) error); ok {
-		r1 = rf(project, zone)
+	if rf, ok := ret.Get(1).(func(string, string, int64) error); ok {
+		r1 = rf(project, zone, perPage)
 	} else {
 		r1 = ret.Error(1)
 	}

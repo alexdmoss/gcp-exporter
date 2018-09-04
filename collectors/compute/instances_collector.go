@@ -25,6 +25,7 @@ var (
 
 const (
 	InstancesCollectorName = "instances-collector"
+	PerPage                = 500
 )
 
 type instancesPermutation struct {
@@ -92,6 +93,7 @@ type InstancesCollector struct {
 	*Common
 
 	MatchTags []string `long:"match-tag" description:"Count instances that are matching selected tag"`
+	PerPage   int64    `long:"per-page" description:"Items to request per API page, for listing requests"`
 
 	service   services.ComputeServiceInterface
 	instances instancesCounterInterface
@@ -121,14 +123,14 @@ func (c *InstancesCollector) GetData() error {
 				"zone":    zone,
 			}).Debugf("Requesting instances")
 
-			instances, err := c.service.ListInstances(project, zone)
+			instances, err := c.service.ListInstances(project, zone, c.PerPage)
 			if err != nil {
 				return fmt.Errorf("error while requesting instances data: %v", err)
 			}
 
-			logrus.WithField("count", len(instances.Items)).Debugln("Found instances")
+			logrus.WithField("count", len(instances)).Debugln("Found instances")
 
-			selectedInstances := c.filterInstances(instances.Items)
+			selectedInstances := c.filterInstances(instances)
 			count.Add(project, zone, selectedInstances)
 		}
 	}
@@ -208,6 +210,7 @@ func (c *InstancesCollector) Init(client *http.Client) error {
 func NewInstancesCollector(c *Common) *InstancesCollector {
 	return &InstancesCollector{
 		Common:      c,
+		PerPage:     PerPage,
 		instances:   newInstancesCounter(),
 		initialized: false,
 	}
