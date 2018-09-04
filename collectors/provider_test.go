@@ -2,6 +2,7 @@ package collectors
 
 import (
 	"bytes"
+	"context"
 	"flag"
 	"fmt"
 	"net/http"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/urfave/cli"
 
 	col "gitlab.com/gitlab-org/ci-cd/gcp-exporter/collectors/collector"
@@ -116,7 +118,7 @@ func TestProvider_GetData(t *testing.T) {
 	tests.RunOnHijackedLogrusOutput(t, func(t *testing.T, output *bytes.Buffer) {
 		c1 := &col.MockInterface{}
 		c1.On("Init", http.DefaultClient).Return(nil).Once()
-		c1.On("GetData").Return(nil).Once()
+		c1.On("GetData", mock.Anything).Return(nil).Once()
 		defer c1.AssertExpectations(t)
 
 		p := NewProvider(http.DefaultClient)
@@ -125,7 +127,7 @@ func TestProvider_GetData(t *testing.T) {
 
 		p.registerCollector("first-fake-collector", c1)
 
-		p.GetData()
+		p.GetData(context.Background())
 		assert.Contains(t, output.String(), "Getting data from GCP")
 		assert.True(t, p.lastGetDataTimestamp.Unix() > time.Now().Add(-10*time.Second).Unix())
 		assert.Equal(t, uint64(0), p.getDataErrors)
@@ -136,7 +138,7 @@ func TestProvider_GetDataFailure(t *testing.T) {
 	tests.RunOnHijackedLogrusOutput(t, func(t *testing.T, output *bytes.Buffer) {
 		c1 := &col.MockInterface{}
 		c1.On("Init", http.DefaultClient).Return(nil).Once()
-		c1.On("GetData").Return(fmt.Errorf("fake-error")).Once()
+		c1.On("GetData", mock.Anything).Return(fmt.Errorf("fake-error")).Once()
 		defer c1.AssertExpectations(t)
 
 		p := NewProvider(http.DefaultClient)
@@ -144,7 +146,7 @@ func TestProvider_GetDataFailure(t *testing.T) {
 
 		p.registerCollector("first-fake-collector", c1)
 
-		p.GetData()
+		p.GetData(context.Background())
 		assert.Contains(t, output.String(), "Error while getting data from GCP")
 		assert.Contains(t, output.String(), "fake-error")
 		assert.Equal(t, uint64(1), p.getDataErrors)

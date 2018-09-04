@@ -4,6 +4,7 @@
 
 package collector
 
+import context "context"
 import http "net/http"
 import mock "github.com/stretchr/testify/mock"
 import prometheus "github.com/prometheus/client_golang/prometheus"
@@ -23,13 +24,13 @@ func (_m *MockInterface) Describe(_a0 chan<- *prometheus.Desc) {
 	_m.Called(_a0)
 }
 
-// GetData provides a mock function with given fields:
-func (_m *MockInterface) GetData() error {
-	ret := _m.Called()
+// GetData provides a mock function with given fields: ctx
+func (_m *MockInterface) GetData(ctx context.Context) error {
+	ret := _m.Called(ctx)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func() error); ok {
-		r0 = rf()
+	if rf, ok := ret.Get(0).(func(context.Context) error); ok {
+		r0 = rf(ctx)
 	} else {
 		r0 = ret.Error(0)
 	}

@@ -1,6 +1,7 @@
 package collector
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -11,5 +12,5 @@ type Interface interface {
 
 	Init(*http.Client) error
 	GetName() string
-	GetData() error
+	GetData(ctx context.Context) error
 }

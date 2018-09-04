@@ -2,6 +2,7 @@ package services
 
 import (
 	"bytes"
+	"context"
 	"io/ioutil"
 	"net/http"
 	"testing"
@@ -57,18 +58,18 @@ func TestComputeService_ListInstances_notAuthorized(t *testing.T) {
 	c, err := NewComputeService(getFakeClient(t))
 	assert.NoError(t, err)
 
-	instancesList, err := c.ListInstances("fake-project", "fake-zone")
+	instancesList, err := c.ListInstances(context.Background(), "fake-project", "fake-zone", 10)
 
-	assert.Nil(t, instancesList)
+	assert.Empty(t, instancesList)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "Error 401: Login Required")
 }
 
 func TestComputeService_ListInstances_notInitialized(t *testing.T) {
 	c := &ComputeService{}
-	instancesList, err := c.ListInstances("fake-project", "fake-zone")
+	instancesList, err := c.ListInstances(context.Background(), "fake-project", "fake-zone", 10)
 
-	assert.Nil(t, instancesList)
+	assert.Empty(t, instancesList)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "service not initialized")
 }
@@ -77,7 +78,7 @@ func TestComputeService_GetRegion(t *testing.T) {
 	c, err := NewComputeService(getFakeClient(t))
 	assert.NoError(t, err)
 
-	reg, err := c.GetRegion("fake-project", "fake-region")
+	reg, err := c.GetRegion(context.Background(), "fake-project", "fake-region")
 
 	assert.Nil(t, reg)
 	require.Error(t, err)
@@ -86,7 +87,7 @@ func TestComputeService_GetRegion(t *testing.T) {
 
 func TestComputeService_GetRegion_notInitialized(t *testing.T) {
 	c := &ComputeService{}
-	reg, err := c.GetRegion("fake-project", "fake-region")
+	reg, err := c.GetRegion(context.Background(), "fake-project", "fake-region")
 
 	assert.Nil(t, reg)
 	require.Error(t, err)

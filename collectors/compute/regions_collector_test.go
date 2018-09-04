@@ -1,6 +1,7 @@
 package compute
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"testing"
@@ -9,6 +10,7 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
 	"gitlab.com/gitlab-org/ci-cd/gcp-exporter/client/services"
@@ -73,7 +75,7 @@ func TestRegionsCollector_GetData_withoutInitialize(t *testing.T) {
 	collector.Projects = append(collector.Projects, "fake-project")
 	collector.Zones = append(collector.Zones, "fake-zone")
 
-	err := collector.GetData()
+	err := collector.GetData(context.Background())
 
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "collector not initialized")
@@ -85,7 +87,7 @@ func TestRegionsCollector_GetData_withoutComputeService(t *testing.T) {
 	collector.Zones = append(collector.Zones, "fake-zone")
 	collector.initialized = true
 
-	err := collector.GetData()
+	err := collector.GetData(context.Background())
 
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "instances collector compute.Service is not initialized")
@@ -110,8 +112,8 @@ func TestRegionsCollector_GetData(t *testing.T) {
 	region2 := &compute.Region{Quotas: []*compute.Quota{quota3}}
 
 	service := &services.MockComputeServiceInterface{}
-	service.On("GetRegion", p1, r1).Return(region1, nil).Once()
-	service.On("GetRegion", p2, r1).Return(region2, nil).Once()
+	service.On("GetRegion", mock.Anything, p1, r1).Return(region1, nil).Once()
+	service.On("GetRegion", mock.Anything, p2, r1).Return(region2, nil).Once()
 	collector.service = service
 
 	ct := &mockRegionQuotasCounterInterface{}
@@ -124,7 +126,7 @@ func TestRegionsCollector_GetData(t *testing.T) {
 
 	collector.initialized = true
 
-	err := collector.GetData()
+	err := collector.GetData(context.Background())
 
 	require.NoError(t, err)
 	service.AssertExpectations(t)
@@ -137,12 +139,12 @@ func TestRegionsCollector_GetData_GetRegionError(t *testing.T) {
 	collector.Zones = append(collector.Zones, "fake-zone-1")
 
 	service := &services.MockComputeServiceInterface{}
-	service.On("GetRegion", "fake-project-1", "fake-zone").Return(nil, fmt.Errorf("fake-get-region-error")).Once()
+	service.On("GetRegion", mock.Anything, "fake-project-1", "fake-zone").Return(nil, fmt.Errorf("fake-get-region-error")).Once()
 	collector.service = service
 
 	collector.initialized = true
 
-	err := collector.GetData()
+	err := collector.GetData(context.Background())
 
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "error while requesting region data: fake-get-region-error")

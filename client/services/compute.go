@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 
@@ -8,32 +9,44 @@ import (
 )
 
 type ComputeServiceInterface interface {
-	ListInstances(project string, zone string) (*compute.InstanceList, error)
-	GetRegion(project string, region string) (*compute.Region, error)
+	ListInstances(ctx context.Context, project string, zone string, perPage int64) ([]*compute.Instance, error)
+	GetRegion(ctx context.Context, project string, region string) (*compute.Region, error)
 }
 
 type ComputeService struct {
 	service *compute.Service
 }
 
-func (cs *ComputeService) ListInstances(project string, zone string) (*compute.InstanceList, error) {
+func (cs *ComputeService) ListInstances(ctx context.Context, project string, zone string, perPage int64) ([]*compute.Instance, error) {
 	err := cs.failIfInitialized()
 	if err != nil {
 		return nil, err
 	}
 
-	ilc := cs.service.Instances.List(project, zone)
+	instances := make([]*compute.Instance, 0)
 
-	return ilc.Do()
+	ilc := cs.service.Instances.List(project, zone)
+	ilc.MaxResults(perPage)
+	err = ilc.Pages(ctx, func(page *compute.InstanceList) error {
+		instances = append(instances, page.Items...)
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return instances, nil
 }
 
-func (cs *ComputeService) GetRegion(project string, region string) (*compute.Region, error) {
+func (cs *ComputeService) GetRegion(ctx context.Context, project string, region string) (*compute.Region, error) {
 	err := cs.failIfInitialized()
 	if err != nil {
 		return nil, err
 	}
 
 	rgc := cs.service.Regions.Get(project, region)
+	rgc.Context(ctx)
 
 	return rgc.Do()
 }
